@@ -77,11 +77,15 @@ class PrefSubViewController: PreferenceViewController, PreferenceWindowEmbeddabl
         firstly {
           OpenSubSupport().login(testUser: username, password: password)
         }.map { _ in
-          let result = KeychainAccess.write(username: username, password: password, forService: .openSubAccount)
-          if result.succeeded {
+          do {
+            try KeychainAccess.write(username: username, password: password, forService: .openSubAccount)
             Preference.set(username, for: .openSubUsername)
-          } else {
-            Utility.showAlert("sub.cannot_save_passwd", arguments: [result.errorMessage ?? ""])
+          } catch KeychainAccess.KeychainError.noResult {
+            Utility.showAlert("sub.cannot_save_passwd", arguments: ["Cannot find password."])
+          } catch KeychainAccess.KeychainError.unhandledError(let message) {
+            Utility.showAlert("sub.cannot_save_passwd", arguments: [message])
+          } catch KeychainAccess.KeychainError.unexpectedData {
+            Utility.showAlert("sub.cannot_save_passwd", arguments: ["Unexcepted data when reading password."])
           }
         }.ensure {
           self.loginIndicator.isHidden = true
